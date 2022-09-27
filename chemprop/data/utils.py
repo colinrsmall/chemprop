@@ -406,6 +406,8 @@ def get_data(path: str,
             except Exception as e:
                 raise ValueError(f'Failed to load or validate custom bond features: {e}')
 
+        # Test clearing tqdm instances to fix tqdm printing new lines
+        tqdm._instances.clear()
 
         data = MoleculeDataset([
             MoleculeDatapoint(
