@@ -15,7 +15,7 @@ import torch.nn as nn
 import numpy as np
 from torch.optim import Adam, Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from scipy.stats.mstats import gmean
 
 from chemprop.args import PredictArgs, TrainArgs, FingerprintArgs

@@ -8,7 +8,7 @@ import os
 
 from rdkit import Chem
 import numpy as np
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from .data import MoleculeDatapoint, MoleculeDataset, make_mols
 from .scaffold import log_scaffold_stats, scaffold_split
@@ -405,6 +405,7 @@ def get_data(path: str,
                 bond_features = load_valid_atom_or_bond_features(bond_features_path, [x[0] for x in all_smiles])
             except Exception as e:
                 raise ValueError(f'Failed to load or validate custom bond features: {e}')
+
 
         data = MoleculeDataset([
             MoleculeDatapoint(

@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from tensorboardX import SummaryWriter
 import torch
-from tqdm import trange
+from tqdm.auto import trange
 from torch.optim.lr_scheduler import ExponentialLR
 
 from .evaluate import evaluate, evaluate_predictions
