@@ -426,7 +426,7 @@ def get_data(path: str,
                 overwrite_default_atom_features=args.overwrite_default_atom_features if args is not None else False,
                 overwrite_default_bond_features=args.overwrite_default_bond_features if args is not None else False
             ) for i, (smiles, targets) in tqdm(enumerate(zip(all_smiles, all_targets)),
-                                               total=len(all_smiles))
+                                               total=len(all_smiles), position=0, leave=True)
         ])
 
     # Filter out invalid SMILES
