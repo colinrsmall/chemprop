@@ -343,7 +343,7 @@ def run_training(args: TrainArgs,
                 if args.ensemble_size > 1:
                     run[f"validation/ensemble_{model_idx}/{metric}"].log(mean_val_score)
                 else:
-                    run[f"validation_{metric}"].log(mean_val_score)
+                    run[f"validation/{metric}"].log(mean_val_score)
 
                 if args.show_individual_scores:
                     # Individual validation scores
@@ -429,10 +429,7 @@ def run_training(args: TrainArgs,
         info(f'Ensemble test {metric} = {mean_ensemble_test_score:.6f}')
 
         # Log metric with Neptune
-        if args.ensemble_size > 1:
-            run[f"test_ensemble_whole/{metric}"] = mean_val_score
-        else:
-            run[f"test_best/{metric}"] = mean_val_score
+        run[f"test/{metric}"] = mean_val_score
 
         # Individual ensemble scores
         if args.show_individual_scores:
