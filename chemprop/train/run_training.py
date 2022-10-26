@@ -433,7 +433,7 @@ def run_training(args: TrainArgs,
         info(f'Ensemble test {metric} = {mean_ensemble_test_score:.6f}')
 
         # Log metric with Neptune
-        run[f"test/{metric}"] = mean_val_score
+        run[f"test/final_{metric}"] = mean_val_score
 
         # Individual ensemble scores
         if args.show_individual_scores:
