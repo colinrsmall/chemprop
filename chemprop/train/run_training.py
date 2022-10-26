@@ -23,6 +23,8 @@ from chemprop.nn_utils import param_count, param_count_all
 from chemprop.utils import build_optimizer, build_lr_scheduler, load_checkpoint, makedirs, \
     save_checkpoint, save_smiles_splits, load_frzn_model, multitask_mean
 
+import neptune.new as neptune
+
 
 def run_training(args: TrainArgs,
                  data: MoleculeDataset,
@@ -37,6 +39,11 @@ def run_training(args: TrainArgs,
     :return: A dictionary mapping each metric in :code:`args.metrics` to a list of values for each task.
 
     """
+    run = neptune.init(
+        project="colinrsmall/chemprop-antibiotics",
+        api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI5OTAxNDk2OS0wMDNhLTRlZmUtOTQ1OC05MDRkNTFkNDY1YTIifQ==",
+    )
+
     if logger is not None:
         debug, info = logger.debug, logger.info
     else:
@@ -44,6 +51,29 @@ def run_training(args: TrainArgs,
 
     # Set pytorch seed for random initial weights
     torch.manual_seed(args.pytorch_seed)
+
+    # Log model arguments seed with Neptune
+    params = {
+        "loss": args.loss_function,
+        "seed": args.pytorch_seed,
+        "hidden_size": args.hidden_size,
+        "depth": args.depth,
+        "mpn_shared": args.mpn_shared,
+        "dropout": args.dropout,
+        "activation": args.activation,
+        "atom_messages": args.atom_messages,
+        "undirected": args.undirected,
+        "ffn_hidden_size": args.ffn_hidden_size,
+        "ffn_num_layers": args.ffn_num_layers,
+        "ensemble_size": args.ensemble_size,
+        "aggregation": args.aggregation,
+        "aggregation_norm": args.aggregation_norm,
+        "epochs": args.epochs,
+        "init_lr": args.init_lr,
+        "max_lr": args.max_lr,
+        "final_lr": args.final_lr
+    }
+    run["parameters"] = params
 
     # Split data
     debug(f'Splitting data with seed {args.seed}')
@@ -273,6 +303,13 @@ def run_training(args: TrainArgs,
         best_epoch, n_iter = 0, 0
         for epoch in trange(args.epochs):
             debug(f'Epoch {epoch}')
+
+            # Log learning rate in Neptune
+            if args.ensemble_size > 1:
+                run[f"train/lr_{model_idx}/{args.ensemble_size}"].log(scheduler.get_lr())
+            else:
+                run["train/lr"].log(scheduler.get_lr())
+
             n_iter = train(
                 model=model,
                 data_loader=train_data_loader,
@@ -297,10 +334,16 @@ def run_training(args: TrainArgs,
             )
 
             for metric, scores in val_scores.items():
-                # Average validation score\
+                # Average validation score
                 mean_val_score = multitask_mean(scores, metric=metric)
                 debug(f'Validation {metric} = {mean_val_score:.6f}')
                 writer.add_scalar(f'validation_{metric}', mean_val_score, n_iter)
+
+                # Log metric with Neptune
+                if args.ensemble_size > 1:
+                    run[f"validation/ensemble_{model_idx}/{metric}"].log(mean_val_score)
+                else:
+                    run[f"validation_{metric}"].log(mean_val_score)
 
                 if args.show_individual_scores:
                     # Individual validation scores
@@ -348,6 +391,12 @@ def run_training(args: TrainArgs,
                 info(f'Model {model_idx} test {metric} = {avg_test_score:.6f}')
                 writer.add_scalar(f'test_{metric}', avg_test_score, 0)
 
+                # Log metric with Neptune
+                if args.ensemble_size > 1:
+                    run[f"test/ensemble_{model_idx}/{metric}"].log(mean_val_score)
+                else:
+                    run[f"test/{metric}"].log(mean_val_score)
+
                 if args.show_individual_scores and args.dataset_type != 'spectra':
                     # Individual test scores
                     for task_name, test_score in zip(args.task_names, scores):
@@ -379,6 +428,12 @@ def run_training(args: TrainArgs,
         mean_ensemble_test_score = multitask_mean(scores, metric=metric)
         info(f'Ensemble test {metric} = {mean_ensemble_test_score:.6f}')
 
+        # Log metric with Neptune
+        if args.ensemble_size > 1:
+            run[f"test_ensemble_whole/{metric}"] = mean_val_score
+        else:
+            run[f"test_best/{metric}"] = mean_val_score
+
         # Individual ensemble scores
         if args.show_individual_scores:
             for task_name, ensemble_score in zip(args.task_names, scores):
@@ -396,5 +451,8 @@ def run_training(args: TrainArgs,
             test_preds_dataframe[task_name] = [pred[i] for pred in avg_test_preds]
 
         test_preds_dataframe.to_csv(os.path.join(args.save_dir, 'test_preds.csv'), index=False)
+
+    # Stop Neptune logging
+    run.stop()
 
     return ensemble_scores
