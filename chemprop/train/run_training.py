@@ -310,6 +310,7 @@ def run_training(args: TrainArgs,
             else:
                 run["train/lr"].log(scheduler.get_lr())
 
+            # Neptune loss logging is handled within train()
             n_iter = train(
                 model=model,
                 data_loader=train_data_loader,
@@ -319,7 +320,10 @@ def run_training(args: TrainArgs,
                 args=args,
                 n_iter=n_iter,
                 logger=logger,
-                writer=writer
+                writer=writer,
+                neptune_logger=run,
+                ensemble_size=args.ensemble_size,
+                model_idx=model_idx
             )
             if isinstance(scheduler, ExponentialLR):
                 scheduler.step()

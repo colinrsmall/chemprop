@@ -22,7 +22,10 @@ def train(model: MoleculeModel,
           args: TrainArgs,
           n_iter: int = 0,
           logger: logging.Logger = None,
-          writer: SummaryWriter = None) -> int:
+          writer: SummaryWriter = None,
+          neptune_logger = None,
+          ensemble_size: int = 1,
+          model_idx: int = 1) -> int:
     """
     Trains a model for an epoch.
 
@@ -133,6 +136,16 @@ def train(model: MoleculeModel,
 
             lrs_str = ', '.join(f'lr_{i} = {lr:.4e}' for i, lr in enumerate(lrs))
             debug(f'Loss = {loss_avg:.4e}, PNorm = {pnorm:.4f}, GNorm = {gnorm:.4f}, {lrs_str}')
+
+            if neptune_logger:
+                if ensemble_size > 1:
+                    neptune_logger[f"train/component_{model_idx}/loss"].log(loss_avg)
+                    neptune_logger[f"train/component_{model_idx}/pnorm"].log(pnorm)
+                    neptune_logger[f"train/component_{model_idx}/gnorm"].log(gnorm)
+                else:
+                    neptune_logger["train/loss"].log(loss_avg)
+                    neptune_logger["train/pnorm"].log(pnorm)
+                    neptune_logger["train/gnorm"].log(gnorm)
 
             if writer is not None:
                 writer.add_scalar('train_loss', loss_avg, n_iter)
