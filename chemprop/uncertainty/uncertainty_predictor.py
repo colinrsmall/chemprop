@@ -165,8 +165,9 @@ class NoUncertaintyPredictor(UncertaintyPredictor):
             self.uncal_preds = (sum_preds / self.num_models).tolist()
         except TypeError:
             print("Invalid prediction values.")
-            invalid_indices = np.argwhere(sum_preds is None)
+            invalid_indices = np.argwhere(np.isnan(sum_preds))
             print(invalid_indices)
+            quit(-1)
 
         uncal_vars = np.zeros_like(sum_preds)
         uncal_vars[:] = np.nan
