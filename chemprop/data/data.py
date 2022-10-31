@@ -11,7 +11,7 @@ from .scaler import StandardScaler
 from chemprop.features import get_features_generator
 from chemprop.features import BatchMolGraph, MolGraph
 from chemprop.features import is_explicit_h, is_reaction, is_adding_hs, is_mol
-from chemprop.rdkit import make_mol
+from chemprop.rdkit2 import make_mol
 
 # Cache of graph featurizations
 CACHE_GRAPH = True

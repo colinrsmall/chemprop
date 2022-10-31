@@ -161,8 +161,13 @@ class NoUncertaintyPredictor(UncertaintyPredictor):
                 sum_preds += np.array(preds)
                 if self.individual_ensemble_predictions:
                     individual_preds = np.append(individual_preds, np.expand_dims(preds, axis=-1), axis=-1)
+        try:
+            self.uncal_preds = (sum_preds / self.num_models).tolist()
+        except TypeError:
+            print("Invalid prediction values.")
+            invalid_indices = np.argwhere(sum_preds is None)
+            print(invalid_indices)
 
-        self.uncal_preds = (sum_preds / self.num_models).tolist()
         uncal_vars = np.zeros_like(sum_preds)
         uncal_vars[:] = np.nan
         self.uncal_vars = uncal_vars
