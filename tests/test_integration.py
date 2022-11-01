@@ -389,7 +389,7 @@ class ChempropTests(TestCase):
             dataset_type = 'regression'
             self.train(
                 dataset_type=dataset_type,
-                metric='rmse',
+                metric='spearman',
                 save_dir=save_dir,
                 model_type=model_type,
                 flags=train_flags
@@ -541,7 +541,7 @@ class ChempropTests(TestCase):
             dataset_type = 'regression'
             self.train(
                 dataset_type=dataset_type,
-                metric='rmse',
+                metric='spearman',
                 save_dir=save_dir,
                 flags=train_flags
             )

@@ -39,10 +39,13 @@ def run_training(args: TrainArgs,
     :return: A dictionary mapping each metric in :code:`args.metrics` to a list of values for each task.
 
     """
-    run = neptune.init(
-        project="colinrsmall/chemprop-antibiotics",
-        api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI5OTAxNDk2OS0wMDNhLTRlZmUtOTQ1OC05MDRkNTFkNDY1YTIifQ==",
-    )
+    if args.neptune_logging:
+        run = neptune.init(
+            project="colinrsmall/chemprop-antibiotics",
+            api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI5OTAxNDk2OS0wMDNhLTRlZmUtOTQ1OC05MDRkNTFkNDY1YTIifQ==",
+        )
+    else:
+        run = None
 
     if logger is not None:
         debug, info = logger.debug, logger.info
@@ -73,7 +76,8 @@ def run_training(args: TrainArgs,
         "max_lr": args.max_lr,
         "final_lr": args.final_lr
     }
-    run["parameters"] = params
+    if args.neptune_logging:
+        run["parameters"] = params
 
     # Split data
     debug(f'Splitting data with seed {args.seed}')
@@ -305,10 +309,11 @@ def run_training(args: TrainArgs,
             debug(f'Epoch {epoch}')
 
             # Log learning rate in Neptune
-            if args.ensemble_size > 1:
-                run[f"train/lr_{model_idx}/{args.ensemble_size}"].log(scheduler.get_lr())
-            else:
-                run["train/lr"].log(scheduler.get_lr())
+            if args.neptune_logging:
+                if args.ensemble_size > 1:
+                    run[f"train/lr_{model_idx}/{args.ensemble_size}"].log(scheduler.get_lr())
+                else:
+                    run["train/lr"].log(scheduler.get_lr())
 
             # Neptune loss logging is handled within train()
             n_iter = train(
@@ -344,10 +349,11 @@ def run_training(args: TrainArgs,
                 writer.add_scalar(f'validation_{metric}', mean_val_score, n_iter)
 
                 # Log metric with Neptune
-                if args.ensemble_size > 1:
-                    run[f"validation/ensemble_{model_idx}/{metric}"].log(mean_val_score)
-                else:
-                    run[f"validation/{metric}"].log(mean_val_score)
+                if args.neptune_logging:
+                    if args.ensemble_size > 1:
+                        run[f"validation/ensemble_{model_idx}/{metric}"].log(mean_val_score)
+                    else:
+                        run[f"validation/{metric}"].log(mean_val_score)
 
                 if args.show_individual_scores:
                     # Individual validation scores
@@ -396,10 +402,11 @@ def run_training(args: TrainArgs,
                 writer.add_scalar(f'test_{metric}', avg_test_score, 0)
 
                 # Log metric with Neptune
-                if args.ensemble_size > 1:
-                    run[f"test/ensemble_{model_idx}/{metric}"].log(mean_val_score)
-                else:
-                    run[f"test/{metric}"].log(mean_val_score)
+                if args.neptune_logging:
+                    if args.ensemble_size > 1:
+                        run[f"test/ensemble_{model_idx}/{metric}"].log(mean_val_score)
+                    else:
+                        run[f"test/{metric}"].log(mean_val_score)
 
                 if args.show_individual_scores and args.dataset_type != 'spectra':
                     # Individual test scores
@@ -433,7 +440,8 @@ def run_training(args: TrainArgs,
         info(f'Ensemble test {metric} = {mean_ensemble_test_score:.6f}')
 
         # Log metric with Neptune
-        run[f"test/final_{metric}"] = mean_val_score
+        if args.neptune_logging:
+            run[f"test/final_{metric}"] = mean_val_score
 
         # Individual ensemble scores
         if args.show_individual_scores:
@@ -454,6 +462,7 @@ def run_training(args: TrainArgs,
         test_preds_dataframe.to_csv(os.path.join(args.save_dir, 'test_preds.csv'), index=False)
 
     # Stop Neptune logging
-    run.stop()
+    if args.neptune_logging:
+        run.stop()
 
     return ensemble_scores

@@ -8,6 +8,7 @@ import torch.nn as nn
 from sklearn.metrics import auc, mean_absolute_error, mean_squared_error, precision_recall_curve, r2_score,\
     roc_auc_score, accuracy_score, log_loss, f1_score, matthews_corrcoef
 
+from scipy.stats import spearmanr
 
 def get_metric_func(metric: str) -> Callable[[Union[List[int], List[float]], List[float]], float]:
     r"""
@@ -77,6 +78,9 @@ def get_metric_func(metric: str) -> Callable[[Union[List[int], List[float]], Lis
     
     if metric == 'wasserstein':
         return wasserstein_metric
+
+    if metric == 'spearman':
+        return spearman
 
     raise ValueError(f'Metric "{metric}" not supported.')
 
@@ -340,3 +344,14 @@ def wasserstein_metric(model_spectra: List[List[float]], target_spectra: List[Li
     loss = np.mean(loss)
 
     return loss
+
+
+def spearman(targets: List[float], preds: List[float]) -> float:
+    """
+    Computes the Spearman rank-order correlation coefficient between target (ground truth) values and predictions.
+
+    :param targets: A list of target (ground truth values).
+    :param preds: A list of predicted values.
+    :return: The computed Spearman rank-order correlation coefficient.
+    """
+    return spearmanr(targets, preds, nan_policy="omit")[0]
